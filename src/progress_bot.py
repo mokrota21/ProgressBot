@@ -37,34 +37,65 @@ class ProgressBot:
     #        user_reply = self.attributes['user_message']
 
     #        return conversation.get_answer(user_reply, self.attributes)
+     async def show_progress(self, message, progress):
+         df = None
+         try:
+             since = datetime.strptime(message[2], '%Y-%m-%d').date()
+             to = datetime.strptime(message[3], '%Y-%m-%d').date()
+             df = progress.get_progress(since=since, to=to)
+         except Exception:
+             if len(message) == 2:
+                 df = progress.get_progress()
+         return df
 
      async def handle_messages(self):
         message = self.attributes['user_message']
+        if message[0] != '!':
+            return ''
         message = message.split()
+        message[0] = message[0][1:]
         ID = self.attributes['userid']
+        name = self.attributes['username']
         if ID not in self.personal_progresses:
-            self.personal_progresses[ID] = PersonalProgress(path= ID + '.json', ID=ID, save_threshold=self.save_threshold)
+            self.personal_progresses[ID] = PersonalProgress(path= ID + '.json', name=name, save_threshold=self.save_threshold)
         progress = self.personal_progresses[ID]
 
         # scenarios = [ re.compile(r'show progress ')
         # ]
 
         if message[:2] == ['show', 'progress']:
-            if len(message) == 4:
-                since = datetime.strptime(message[2], '%Y-%m-%d').date()
-                to = datetime.strptime(message[3], '%Y-%m-%d').date()
-                df = progress.get_progress(since=since, to=to)
-            elif len(message) == 2:
-                df = progress.get_progress()
+            df = await self.show_progress(message=message, progress=progress)
+            if df is not None:
+                return '`' + df.to_markdown() + '`'
             else:
                 return "Wrong timestamp"
-            return '`' + df.to_markdown() + '`'
+        
+        
+        
+        elif message[:2] == ['peek', 'progress']:
+            try:
+                other_id = message[2]
+                other_id = str(other_id[2:-1])
+                if other_id not in self.personal_progresses:
+                    self.personal_progresses[other_id] = PersonalProgress(path= other_id + '.json', name=name, save_threshold=self.save_threshold)
+                progress_other = self.personal_progresses[other_id]
+                df_other = await self.show_progress(message=message[1:], progress=progress_other)
+                if df_other is not None:
+                    return '`' + df_other.to_markdown() + '`'
+                else:
+                    return "Wrong timestamp"
+            except Exception as e:
+                print(e)
+                return "No username provided"
         
         elif message[:2] == ['update', 'progress']:
             new_progress = message[2]
+            book = 'None'
+            if len(message) == 4:
+                book = message[3]
             if re.match(r'^[+-][0-9]+-[0-9]+', new_progress):
                 try:
-                    progress.update_progress(new_progress=new_progress)
+                    progress.update_progress(new_progress=new_progress, book=book)
                     return 'Succesfully added progress'
                 except Exception:
                     return 'Internal Error: Failed to add progress'
@@ -77,7 +108,7 @@ class ProgressBot:
             channel = self.attributes['channel']
             await channel.send(message)
         except Exception as e:
-                print(e)
+                print(e, 'wtf')
         
      def run_bot(self):
         """
@@ -94,7 +125,7 @@ class ProgressBot:
             # Storing all esential attributes
             self.attributes['username'] = str(message.author).split('#')[0]
             self.attributes['user_message'] = message.content.lower()
-            self.attributes['userid'] = str(message.author)
+            self.attributes['userid'] = str(message.author.id)
             self.attributes['channel'] = message.channel
             print(f"{self.attributes['username']}: {self.attributes['user_message']}")
 

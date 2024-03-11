@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 
-template = pd.DataFrame(columns=['ID', 'Progress', 'Date'])
+template = pd.DataFrame(columns=['Name', 'Progress', 'Date'])
 class PersonalProgress:
     '''
     This class allows to manipulate progress of person with given ID and eventually save it in file provided by path.
@@ -10,15 +10,15 @@ class PersonalProgress:
     If any information existed prior it takes information from given path.
     '''
 
-    def __init__(self, path, ID, save_threshold = 1) -> None:
+    def __init__(self, path, name, save_threshold = 1) -> None:
         self._path = path
-        self._ID = ID
+        self._name = name
         self._counter = 0
         self._save_threshold = save_threshold
         try:
             self._df = pd.read_json(path)
         except FileNotFoundError:
-            self._df = pd.DataFrame(columns=['ID', 'Progress', 'Date'])
+            self._df = pd.DataFrame(columns=['Name', 'Progress', 'Date', 'Book'])
         self._df['Date'] = pd.to_datetime(self._df['Date'])
     
     # Checking if threshold is exceeded
@@ -37,8 +37,8 @@ class PersonalProgress:
             
 
     # Updates progress based on message
-    def update_progress(self, new_progress: str) -> None:
-        new_progress = {'ID': self._ID, 'Progress': new_progress, 'Date': datetime.now()}
+    def update_progress(self, new_progress: str, book: str = 'None') -> None:
+        new_progress = {'Name': self._name, 'Progress': new_progress, 'Date': datetime.now(), 'Book': book}
         self.df = pd.concat([self.df, pd.DataFrame([new_progress])], ignore_index=True)
 
     #Gets progress in given timeframe
