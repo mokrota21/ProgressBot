@@ -91,8 +91,10 @@ class ProgressBot:
         elif message[:2] == ['update', 'progress']:
             new_progress = message[2]
             book = 'None'
-            if len(message) == 4:
-                book = message[3]
+            if len(message) >= 4:
+                book = ''
+                for i in message[3:]:
+                    book += i.capitalize() + ' '
             if re.match(r'^[+-][0-9]+-[0-9]+', new_progress):
                 try:
                     progress.update_progress(new_progress=new_progress, book=book)
